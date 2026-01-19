@@ -21,7 +21,7 @@ import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
 import {
   scheduleDailyCheckIn,
   cancelDailyCheckIn,
-} from "../services/checkinNotifications";
+} from "./services/checkinNotifications"; // ✅ FIXED PATH (ONLY CHANGE)
 
 type Message = {
   id: string;
@@ -165,7 +165,6 @@ export default function NofariScreen() {
 
       const data = await res.json();
 
-      // 🔔 DAILY CHECK-IN HANDLING (SAFE + OPTIONAL)
       if (data.checkInEnabled === true) {
         await scheduleDailyCheckIn();
       }
