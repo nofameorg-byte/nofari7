@@ -22,16 +22,46 @@ export default function InstructionsScreen() {
         <Text style={styles.sectionTitle}>Voice Features</Text>
         <Text style={styles.text}>
           NOFARI supports text-to-speech and speech-to-text.
+          {"\n\n"}
+          If you do not see the microphone on your Android keyboard (including Samsung devices):
+          {"\n\n"}
+          Step 1: Make sure Gboard is your keyboard
+          {"\n"}
+          • Open Phone Settings{"\n"}
+          • Tap General management{"\n"}
+          • Tap Keyboard list and default{"\n"}
+          • Set Default keyboard to Gboard{"\n\n"}
+          Step 2: Turn on voice typing in Gboard
+          {"\n"}
+          • Open Settings{"\n"}
+          • Tap General management{"\n"}
+          • Tap Gboard settings{"\n"}
+          • Tap Voice typing{"\n"}
+          • Turn ON “Use voice typing”
+          {"\n\n"}
+          Step 3: Allow microphone access for NOFARI
+          {"\n"}
+          • Open Settings → Apps{"\n"}
+          • Select NOFARI{"\n"}
+          • Tap Permissions{"\n"}
+          • Set Microphone to “Allow while using the app”
+          {"\n\n"}
+          Step 4: Check system microphone access (Android 12+)
+          {"\n"}
+          • Open Settings → Privacy{"\n"}
+          • Tap Permission manager{"\n"}
+          • Tap Microphone{"\n"}
+          • Make sure microphone access is ON{"\n\n"}
+          Step 5 (Samsung only): Check privacy controls
+          {"\n"}
+          • Open Settings → Privacy{"\n"}
+          • Make sure “Mute all microphones” is OFF{"\n\n"}
+          After making changes, restart your phone and reopen NOFARI.
         </Text>
 
+        <Text style={styles.sectionTitle}>Scroll</Text>
         <Text style={styles.text}>
-          If you do not see the microphone on your iPhone keyboard:
-          {"\n\n"}
-          1. Open iPhone Settings{"\n"}
-          2. Go to General → Keyboard{"\n"}
-          3. Turn on Enable Dictation
-          {"\n\n"}
-          Return to the app and try again.
+          To scroll and view full messages Tap screen once, and scroll.
         </Text>
 
         <Text style={styles.sectionTitle}>Log Out vs Delete</Text>

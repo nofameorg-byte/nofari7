@@ -2,49 +2,52 @@
   "expo": {
     "name": "NOFARI",
     "slug": "nofari",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/app-icon.png",
+    "icon": "./assets/images/nofari-face.png",
     "scheme": "nofari",
-    "userInterfaceStyle": "dark",
-
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#020925"
-    },
-
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "development"
+        }
+      ]
+    ],
     "ios": {
+      "supportsTablet": true,
       "bundleIdentifier": "com.nofari.nofari8",
-      "buildNumber": "7",
-      "supportsTablet": false,
       "infoPlist": {
+        "NSMicrophoneUsageDescription": "NOFARI Circle needs microphone access so users can speak in voice rooms.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-
     "android": {
       "package": "com.nofari.nofari8",
-      "versionCode": 7,
-      "softwareKeyboardLayoutMode": "resize",
-
       "permissions": [
-        "INTERNET",
-        "RECORD_AUDIO",
-        "MODIFY_AUDIO_SETTINGS"
-      ],
-
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/app-icon.png",
-        "backgroundColor": "#020925"
-      }
+        "RECORD_AUDIO"
+      ]
     },
-
-    "web": {
-      "favicon": "./assets/images/app-icon.png"
-    },
-
     "extra": {
       "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.nofari.nofari.OneSignalNotificationServiceExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.nofari.nofari.onesignal"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
         "projectId": "81210230-952f-45fa-9bcd-55f2551e6729"
       }
     }

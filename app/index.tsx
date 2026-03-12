@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,95 +9,163 @@ import {
   TouchableWithoutFeedback,
   ActivityIndicator,
   Image,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function IndexScreen() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
 
-  // 🔒 Respect logout / delete block
   useEffect(() => {
-    const checkBlock = async () => {
-      const blocked = await AsyncStorage.getItem("nofari_block_restore");
-      if (blocked === "true") {
-        // user explicitly logged out or deleted
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const locked = await AsyncStorage.getItem("nofari_locked");
+
+      if (session) {
+        if (locked === "true") {
+          router.replace("/lockscreen");
+          return;
+        }
+
+        router.replace("/nofari");
         return;
       }
+
+      setCheckingSession(false);
     };
 
-    checkBlock();
+    checkSession();
   }, []);
 
-  const handleTapIn = async () => {
-    setError("");
-
+  const sendOtp = async () => {
     if (!email || !email.includes("@")) {
-      setError("Please enter a valid email.");
+      Alert.alert("Enter valid email");
       return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase
-      .from("users")
-      .upsert({ email }, { onConflict: "email" });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+    });
 
     setLoading(false);
 
     if (error) {
-      console.error(error);
-      setError("Unable to continue. Try again.");
+      Alert.alert("OTP Error", error.message);
       return;
     }
 
-    // 🔓 Clear block once user explicitly taps in
-    await AsyncStorage.removeItem("nofari_block_restore");
+    setStep("code");
+  };
 
+  const verifyOtp = async () => {
+    if (!code) return;
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "email",
+    });
+
+    if (error) {
+      setLoading(false);
+      Alert.alert("Invalid code");
+      return;
+    }
+
+    setLoading(false);
     router.replace("/nofari");
   };
+
+  if (checkingSession) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#00ffc6" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
           <Image
-            source={require("../assets/images/nofari2-logo.png")}
+            source={require("../assets/images/nofari-face.png")}
             style={styles.logo}
             resizeMode="contain"
           />
 
           <Text style={styles.title}>NOFARI</Text>
 
-          <TextInput
-            placeholder="Enter your email"
-            placeholderTextColor="#9aa4c7"
-            value={email}
-            onChangeText={setEmail}
-            style={styles.input}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          {step === "email" && (
+            <>
+              <TextInput
+                placeholder="Enter your email"
+                placeholderTextColor="#9aa4c7"
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+              <TouchableOpacity
+                style={styles.button}
+                onPress={sendOtp}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#020925" />
+                ) : (
+                  <Text style={styles.buttonText}>TAP IN</Text>
+                )}
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleTapIn}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#020925" />
-            ) : (
-              <Text style={styles.buttonText}>TAP IN</Text>
-            )}
-          </TouchableOpacity>
+              <Text style={styles.subText}>(SEND CODE)</Text>
+            </>
+          )}
+
+          {step === "code" && (
+            <>
+              <TextInput
+                placeholder="Enter 6-digit code"
+                placeholderTextColor="#9aa4c7"
+                value={code}
+                onChangeText={setCode}
+                style={styles.input}
+                keyboardType="number-pad"
+              />
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={verifyOtp}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#020925" />
+                ) : (
+                  <Text style={styles.buttonText}>VERIFY</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </TouchableWithoutFeedback>
     </SafeAreaView>
@@ -106,6 +174,7 @@ export default function IndexScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#020925" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: {
     flex: 1,
     alignItems: "center",
@@ -140,5 +209,9 @@ const styles = StyleSheet.create({
     color: "#020925",
     fontSize: 16,
   },
-  error: { color: "#ff6b6b", marginBottom: 10 },
+  subText: {
+    color: "#6fdcc8",
+    fontSize: 12,
+    marginTop: 6,
+  },
 });

@@ -13,15 +13,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
-
-import {
-  scheduleDailyCheckIn,
-  cancelDailyCheckIn,
-} from "./services/checkinNotifications"; // ✅ FIXED PATH (ONLY CHANGE)
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { supabase } from "../lib/supabase";
 
 type Message = {
   id: string;
@@ -34,85 +30,141 @@ const BACKEND_URL = `${process.env.EXPO_PUBLIC_API_URL}/nofari`;
 
 export default function NofariScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showCircle, setShowCircle] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+
+  const [circleDailyMessage, setCircleDailyMessage] = useState(
+    "Your support message is loading..."
+  );
 
   const glowAnim = useRef(new Animated.Value(1)).current;
-  const listenAnim = useRef(new Animated.Value(0)).current;
+  const circleGlow = useRef(new Animated.Value(1)).current;
+
+  const speakBar1 = useRef(new Animated.Value(1)).current;
+  const speakBar2 = useRef(new Animated.Value(1)).current;
+  const speakBar3 = useRef(new Animated.Value(1)).current;
+
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  /* 🔒 Keep screen awake ONLY on chat screen */
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      const email = data?.session?.user?.email || "";
+      setUserEmail(email);
+    };
+    loadUser();
+  }, []);
+
+  useEffect(() => {
+    if (params?.circle === "true") {
+      setShowCircle(true);
+    }
+  }, [params]);
+
   useEffect(() => {
     activateKeepAwake();
-    return () => {
-      deactivateKeepAwake();
-    };
+    return () => deactivateKeepAwake();
   }, []);
 
-  /* 🔊 Audio mode */
-  useEffect(() => {
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-    });
-  }, []);
-
-  /* 🔁 Restore messages */
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
       if (saved) setMessages(JSON.parse(saved));
     });
   }, []);
 
-  /* 💾 Persist messages */
   useEffect(() => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
   }, [messages]);
 
-  /* 🌟 Face glow */
   useEffect(() => {
-    Animated.loop(
+    if (!showCircle) return;
+
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/circle-message`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.message) {
+          setCircleDailyMessage(data.message);
+        }
+      })
+      .catch(() => {
+        setCircleDailyMessage(
+          "Even small steps forward still move your life ahead."
+        );
+      });
+  }, [showCircle]);
+
+  useEffect(() => {
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
-          toValue: 1.05,
-          duration: 1500,
+          toValue: 1.15,
+          duration: 1400,
           useNativeDriver: true,
         }),
         Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 1500,
+          toValue: 0.9,
+          duration: 1400,
           useNativeDriver: true,
         }),
       ])
-    ).start();
-  }, []);
+    );
 
-  /* 🎧 Listening bar animation */
+    anim.start();
+    return () => anim.stop();
+  }, [showCircle]);
+
   useEffect(() => {
-    if (isSpeaking) {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(circleGlow, {
+          toValue: 1.18,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(circleGlow, {
+          toValue: 1,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    anim.start();
+    return () => anim.stop();
+  }, [showCircle]);
+
+  useEffect(() => {
+    if (!isSpeaking) return;
+
+    const animateBar = (bar: Animated.Value, delay: number) => {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(listenAnim, {
-            toValue: 1,
-            duration: 500,
+          Animated.timing(bar, {
+            toValue: 1.8,
+            duration: 250,
+            delay,
             useNativeDriver: true,
           }),
-          Animated.timing(listenAnim, {
-            toValue: 0,
-            duration: 500,
+          Animated.timing(bar, {
+            toValue: 0.6,
+            duration: 250,
             useNativeDriver: true,
           }),
         ])
       ).start();
-    } else {
-      listenAnim.stopAnimation();
-      listenAnim.setValue(0);
-    }
+    };
+
+    animateBar(speakBar1, 0);
+    animateBar(speakBar2, 120);
+    animateBar(speakBar3, 240);
   }, [isSpeaking]);
 
-  /* 🔊 Play MP3 */
   async function playAudioFromUrl(url: string) {
     if (soundRef.current) {
       try {
@@ -142,7 +194,6 @@ export default function NofariScreen() {
     await sound.playAsync();
   }
 
-  /* 📤 Send message */
   const sendMessage = async () => {
     if (!input.trim() || isSpeaking) return;
 
@@ -160,18 +211,13 @@ export default function NofariScreen() {
       const res = await fetch(BACKEND_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: userMessage.text }),
+        body: JSON.stringify({
+          message: userMessage.text,
+          email: userEmail
+        }),
       });
 
       const data = await res.json();
-
-      if (data.checkInEnabled === true) {
-        await scheduleDailyCheckIn();
-      }
-
-      if (data.checkInEnabled === false) {
-        await cancelDailyCheckIn();
-      }
 
       setMessages((prev) => [
         {
@@ -183,10 +229,10 @@ export default function NofariScreen() {
       ]);
 
       if (data.audioUrl) {
-        await playAudioFromUrl(
-          `https://nofari7-backend.onrender.com${data.audioUrl}`
-        );
+        const fullUrl = `${process.env.EXPO_PUBLIC_API_URL}${data.audioUrl}`;
+        await playAudioFromUrl(fullUrl);
       }
+
     } catch (err) {
       console.error("NOFARI frontend error:", err);
     } finally {
@@ -211,152 +257,231 @@ export default function NofariScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.header}>
-        <Animated.View
-          style={[styles.glow, { transform: [{ scale: glowAnim }] }]}
-        />
-        <Image
-          source={require("../assets/images/nofari2-logo.png")}
-          style={styles.logo}
-        />
-      </View>
 
-      {isSpeaking && (
-        <Animated.View
-          style={[
-            styles.listeningBar,
-            {
-              opacity: listenAnim,
-              transform: [
-                {
-                  scaleX: listenAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.3, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
+      {!showCircle && (
+        <>
+          <View style={styles.header}>
+
+            <Animated.View
+              style={[styles.glow, { transform: [{ scale: glowAnim }] }]}
+            />
+
+            <Image
+              source={require("../assets/images/nofari-face.png")}
+              style={[styles.logo,{opacity:1}]}
+            />
+
+            {isSpeaking && (
+              <View style={styles.speakingBars}>
+                <Animated.View style={[styles.bar,{transform:[{scaleY:speakBar1}]}]} />
+                <Animated.View style={[styles.bar,{transform:[{scaleY:speakBar2}]}]} />
+                <Animated.View style={[styles.bar,{transform:[{scaleY:speakBar3}]}]} />
+              </View>
+            )}
+
+          </View>
+
+          <KeyboardAvoidingView
+            style={styles.keyboardArea}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+            <FlatList
+              data={messages}
+              inverted
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.chatContent}
+            />
+
+            {thinking && (
+              <View style={styles.thinkingBar}>
+                <Text style={styles.thinking}>NOFARI is thinking...</Text>
+              </View>
+            )}
+
+            <View style={styles.inputBar}>
+              <TextInput
+                value={input}
+                onChangeText={setInput}
+                placeholder="Talk to NOFARI..."
+                placeholderTextColor="#6fdcc8"
+                style={styles.input}
+                multiline
+              />
+              <TouchableOpacity
+                style={styles.sendBtn}
+                onPress={sendMessage}
+              >
+                <Text style={styles.sendText}>CHAT</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </>
       )}
 
-      <KeyboardAvoidingView
-        style={styles.keyboardArea}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <FlatList
-          data={messages}
-          inverted
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.chatContent}
-        />
+      {showCircle && (
+        <View style={styles.circleContainer}>
 
-        {thinking && <Text style={styles.thinking}>•••</Text>}
+          <View style={styles.circleTopArea}>
 
-        <View style={styles.inputBar}>
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder="Talk to NOFARI..."
-            placeholderTextColor="#6fdcc8"
-            style={styles.input}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, isSpeaking && { opacity: 0.5 }]}
-            onPress={sendMessage}
-            disabled={isSpeaking}
-          >
-            <Text style={styles.sendText}>
-              {isSpeaking ? "LISTENING…" : "CHAT"}
+            <Animated.View
+              style={[
+                styles.goldPulse,
+                { transform: [{ scale: circleGlow }] }
+              ]}
+            />
+
+            <Image
+              source={require("../assets/images/circle.png")}
+              style={[styles.circleImage,{opacity:1}]}
+            />
+
+          </View>
+
+          <Text style={styles.circleTitle}>NOFARI'S CIRCLE</Text>
+
+          <View style={styles.circleBubble}>
+            <Text style={styles.circleBubbleText}>
+              Your support message is ready.
             </Text>
-          </TouchableOpacity>
+          </View>
+
+          <View style={styles.circleMessageBox}>
+            <Text style={styles.circleSub}>
+              {circleDailyMessage}
+            </Text>
+          </View>
+
         </View>
-      </KeyboardAvoidingView>
+      )}
 
       <SafeAreaView edges={["bottom"]} style={styles.bottomSafe}>
         <View style={styles.bottomBar}>
-          <Text style={styles.bottomText}>NOFARI</Text>
+
+          <TouchableOpacity onPress={() => setShowCircle(true)}>
+            <Image
+              source={require("../assets/images/circle.png")}
+              style={{ width: 30, height: 30 }}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setShowCircle(false)}>
+            <Text style={styles.bottomText}>NOFARI</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={() => router.push("/settings")}>
             <Ionicons name="settings-outline" size={34} color="#00ffc6" />
           </TouchableOpacity>
+
         </View>
       </SafeAreaView>
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#020925" },
-  header: { alignItems: "center", paddingVertical: 12 },
-  glow: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#00ffc6",
-    opacity: 0.22,
+  safe:{flex:1,backgroundColor:"#020925"},
+  header:{alignItems:"center",paddingVertical:12},
+  glow:{
+    position:"absolute",
+    width:120,
+    height:120,
+    borderRadius:60,
+    backgroundColor:"#00ffc6",
+    opacity:0.25
   },
-  logo: { width: 90, height: 90 },
-  listeningBar: {
-    height: 6,
-    backgroundColor: "#00ffc6",
-    marginHorizontal: 40,
-    borderRadius: 6,
-    marginBottom: 6,
+  logo:{width:90,height:90},
+  speakingBars:{flexDirection:"row",marginTop:8,gap:4},
+  bar:{width:4,height:16,backgroundColor:"#00ffc6",borderRadius:2},
+  keyboardArea:{flex:1},
+  chatContent:{paddingHorizontal:14,paddingTop:10,paddingBottom:10},
+  bubble:{maxWidth:"75%",padding:14,borderRadius:18,marginVertical:6},
+  userBubble:{backgroundColor:"#00ffc6"},
+  nofariBubble:{backgroundColor:"#102a38"},
+  bubbleText:{color:"#ffffff",fontSize:16,lineHeight:22},
+  right:{alignSelf:"flex-end"},
+  left:{alignSelf:"flex-start"},
+  thinkingBar:{paddingVertical:6,alignItems:"center"},
+  thinking:{color:"#6fdcc8",fontSize:14},
+  inputBar:{
+    flexDirection:"row",
+    alignItems:"flex-end",
+    padding:10,
+    borderTopWidth:0.5,
+    borderTopColor:"#0c2a3a"
   },
-  keyboardArea: { flex: 1 },
-  chatContent: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
+  input:{
+    flex:1,
+    backgroundColor:"#071d2b",
+    borderRadius:20,
+    padding:10,
+    color:"#fff"
   },
-  bubble: {
-    maxWidth: "75%",
-    padding: 14,
-    borderRadius: 18,
-    marginVertical: 6,
+  sendBtn:{
+    backgroundColor:"#00ffc6",
+    borderRadius:22,
+    paddingHorizontal:18,
+    justifyContent:"center",
+    marginLeft:8,
+    height:44
   },
-  userBubble: { backgroundColor: "#00ffc6" },
-  nofariBubble: { backgroundColor: "#102a38" },
-  bubbleText: { color: "#ffffff", fontSize: 16, lineHeight: 22 },
-  right: { alignSelf: "flex-end" },
-  left: { alignSelf: "flex-start" },
-  thinking: { color: "#6fdcc8", fontSize: 28, paddingLeft: 20 },
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    padding: 10,
-    borderTopWidth: 0.5,
-    borderTopColor: "#0c2a3a",
+  sendText:{color:"#021e19",fontWeight:"bold"},
+  circleContainer:{
+    flex:1,
+    alignItems:"center",
+    paddingTop:40,
+    paddingHorizontal:30
   },
-  input: {
-    flex: 1,
-    backgroundColor: "#071d2b",
-    borderRadius: 20,
-    padding: 10,
-    color: "#fff",
+  circleTopArea:{
+    width:200,
+    height:200,
+    alignItems:"center",
+    justifyContent:"center",
+    marginBottom:20
   },
-  sendBtn: {
-    backgroundColor: "#00ffc6",
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    justifyContent: "center",
-    marginLeft: 8,
-    height: 44,
+  goldPulse:{
+    position:"absolute",
+    width:200,
+    height:200,
+    borderRadius:100,
+    backgroundColor:"#FFD700",
+    opacity:0.3
   },
-  sendText: { color: "#021e19", fontWeight: "bold" },
-  bottomSafe: { backgroundColor: "#020925" },
-  bottomBar: {
-    height: 58,
-    borderTopWidth: 0.6,
-    borderTopColor: "#0c2a3a",
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  circleImage:{width:140,height:140},
+  circleTitle:{color:"#ffffff",fontSize:22,fontWeight:"700",marginBottom:14},
+  circleBubble:{
+    backgroundColor:"#102a38",
+    paddingVertical:10,
+    paddingHorizontal:18,
+    borderRadius:20,
+    marginBottom:16
   },
-  bottomText: { color: "#ffffff", fontWeight: "600", fontSize: 16 },
+  circleBubbleText:{
+    color:"#FFD700",
+    fontSize:16,
+    fontWeight:"600"
+  },
+  circleMessageBox:{
+    width:"100%",
+    minHeight:120,
+    borderRadius:14,
+    borderWidth:1,
+    borderColor:"#FFD700",
+    padding:18,
+    backgroundColor:"#071d2b"
+  },
+  circleSub:{color:"#9edfd3",fontSize:16,textAlign:"center",lineHeight:24},
+  bottomSafe:{backgroundColor:"#020925"},
+  bottomBar:{
+    height:58,
+    borderTopWidth:0.6,
+    borderTopColor:"#0c2a3a",
+    paddingHorizontal:20,
+    flexDirection:"row",
+    justifyContent:"space-between",
+    alignItems:"center"
+  },
+  bottomText:{color:"#ffffff",fontWeight:"600",fontSize:16}
 });
