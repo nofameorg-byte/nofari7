@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
@@ -34,6 +35,7 @@ export default function NofariScreen() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [selectedFile, setSelectedFile] = useState<any>(null);
   const [thinking, setThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showCircle, setShowCircle] = useState(false);
@@ -97,6 +99,22 @@ export default function NofariScreen() {
           "Even small steps forward still move your life ahead."
         );
       });
+  }, [showCircle]);
+
+  /* =========================
+     AUTO RETURN FROM CIRCLE
+     prevents freeze if user
+     leaves Circle open
+  ========================= */
+
+  useEffect(() => {
+    if (!showCircle) return;
+
+    const timer = setTimeout(() => {
+      setShowCircle(false);
+    }, 60000);
+
+    return () => clearTimeout(timer);
   }, [showCircle]);
 
   useEffect(() => {
@@ -193,7 +211,22 @@ export default function NofariScreen() {
 
     await sound.playAsync();
   }
+const pickFile = async () => {
+  try {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ["image/*", "application/pdf"],
+      copyToCacheDirectory: true,
+    });
 
+    if (result.canceled) return;
+
+    const file = result.assets[0];
+    setSelectedFile(file);
+
+  } catch (err) {
+    console.log("FILE PICK ERROR:", err);
+  }
+};
   const sendMessage = async () => {
     if (!input.trim() || isSpeaking) return;
 
@@ -208,14 +241,23 @@ export default function NofariScreen() {
     setThinking(true);
 
     try {
-      const res = await fetch(BACKEND_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: userMessage.text,
-          email: userEmail
-        }),
-      });
+      const formData = new FormData();
+
+formData.append("message", userMessage.text);
+formData.append("email", userEmail);
+
+if (selectedFile) {
+  formData.append("file", {
+    uri: selectedFile.uri,
+    name: selectedFile.name || "upload",
+    type: selectedFile.mimeType || "application/octet-stream",
+  } as any);
+}
+
+const res = await fetch(BACKEND_URL, {
+  method: "POST",
+  body: formData,
+});
 
       const data = await res.json();
 
@@ -236,6 +278,7 @@ export default function NofariScreen() {
     } catch (err) {
       console.error("NOFARI frontend error:", err);
     } finally {
+      setSelectedFile(null);
       setThinking(false);
     }
   };
@@ -301,26 +344,39 @@ export default function NofariScreen() {
             )}
 
             <View style={styles.inputBar}>
-              <TextInput
-                value={input}
-                onChangeText={setInput}
-                placeholder="Talk to NOFARI..."
-                placeholderTextColor="#6fdcc8"
-                style={styles.input}
-                multiline
-              />
-              <TouchableOpacity
-                style={styles.sendBtn}
-                onPress={sendMessage}
-              >
-                <Text style={styles.sendText}>CHAT</Text>
-              </TouchableOpacity>
-            </View>
+
+  <TouchableOpacity onPress={pickFile} style={{ marginRight: 6 }}>
+    <Ionicons name="attach-outline" size={26} color="#00ffc6" />
+  </TouchableOpacity>
+
+  <TextInput
+    value={input}
+    onChangeText={setInput}
+    placeholder="Talk to NOFARI..."
+    placeholderTextColor="#6fdcc8"
+    style={styles.input}
+    multiline
+  />
+
+  <TouchableOpacity
+    style={styles.sendBtn}
+    onPress={sendMessage}
+  >
+    <Text style={styles.sendText}>CHAT</Text>
+  </TouchableOpacity>
+
+</View>
           </KeyboardAvoidingView>
         </>
       )}
 
       {showCircle && (
+  <View style={{ flex:1 }}>
+    <FlatList
+      data={[{ id:"circle" }]}
+      keyExtractor={(item) => item.id}
+      showsVerticalScrollIndicator={false}
+      renderItem={() => (
         <View style={styles.circleContainer}>
 
           <View style={styles.circleTopArea}>
@@ -343,7 +399,7 @@ export default function NofariScreen() {
 
           <View style={styles.circleBubble}>
             <Text style={styles.circleBubbleText}>
-              Your support message is ready.
+              Daily support affirmations
             </Text>
           </View>
 
@@ -355,6 +411,9 @@ export default function NofariScreen() {
 
         </View>
       )}
+    />
+  </View>
+)}
 
       <SafeAreaView edges={["bottom"]} style={styles.bottomSafe}>
         <View style={styles.bottomBar}>
@@ -366,7 +425,12 @@ export default function NofariScreen() {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setShowCircle(false)}>
+          <TouchableOpacity
+            onPress={() => {
+              setShowCircle(false);
+              router.replace("/nofari");
+            }}
+          >
             <Text style={styles.bottomText}>NOFARI</Text>
           </TouchableOpacity>
 
@@ -386,13 +450,18 @@ const styles = StyleSheet.create({
   header:{alignItems:"center",paddingVertical:12},
   glow:{
     position:"absolute",
-    width:120,
-    height:120,
+    width:150,
+    height:150,
     borderRadius:60,
     backgroundColor:"#00ffc6",
     opacity:0.25
   },
-  logo:{width:90,height:90},
+  logo:{
+  width:130,
+  height:130,
+  resizeMode:"contain",
+  transform:[{scale:0.82}]
+},
   speakingBars:{flexDirection:"row",marginTop:8,gap:4},
   bar:{width:4,height:16,backgroundColor:"#00ffc6",borderRadius:2},
   keyboardArea:{flex:1},
@@ -452,17 +521,21 @@ const styles = StyleSheet.create({
   circleImage:{width:140,height:140},
   circleTitle:{color:"#ffffff",fontSize:22,fontWeight:"700",marginBottom:14},
   circleBubble:{
-    backgroundColor:"#102a38",
-    paddingVertical:10,
-    paddingHorizontal:18,
-    borderRadius:20,
-    marginBottom:16
-  },
+  backgroundColor:"#102a38",
+  paddingVertical:10,
+  paddingHorizontal:18,
+  borderRadius:20,
+  marginBottom:16,
+  alignSelf:"center",
+  maxWidth:"90%"   // 🔑 prevents squeezing + keeps one line
+},
   circleBubbleText:{
-    color:"#FFD700",
-    fontSize:16,
-    fontWeight:"600"
-  },
+  color:"#FFD700",
+  fontSize:16,
+  fontWeight:"600",
+  textAlign:"center",
+  flexWrap:"nowrap"   // 🔑 stops stacking
+},
   circleMessageBox:{
     width:"100%",
     minHeight:120,
