@@ -2,11 +2,18 @@
   "expo": {
     "name": "NOFARI",
     "slug": "nofari",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/nofari-face.png",
     "scheme": "nofari",
     "userInterfaceStyle": "automatic",
+
+    "splash": {
+      "backgroundColor": "#0B1E6D",
+      "resizeMode": "contain",
+      "image": "./assets/images/nofari-face.png"
+    },
+
     "plugins": [
       [
         "onesignal-expo-plugin",
@@ -15,20 +22,35 @@
         }
       ]
     ],
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nofari.nofari8",
+      "buildNumber": "10",
+
+      "splash": {
+        "backgroundColor": "#0B1E6D"
+      },
+
       "infoPlist": {
         "NSMicrophoneUsageDescription": "NOFARI Circle needs microphone access so users can speak in voice rooms.",
+        "NSCameraUsageDescription": "NOFARI uses the camera for Face2Face video calls between users.",
+        "NSLocationWhenInUseUsageDescription": "NOFARI may access location features if safety tools are enabled.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+
     "android": {
       "package": "com.nofari.nofari8",
+      "versionCode": 13,
       "permissions": [
         "RECORD_AUDIO"
-      ]
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#0B1E6D"
+      }
     },
+
     "extra": {
       "eas": {
         "build": {
@@ -37,7 +59,7 @@
               "appExtensions": [
                 {
                   "targetName": "OneSignalNotificationServiceExtension",
-                  "bundleIdentifier": "com.nofari.nofari.OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.nofari.nofari8.OneSignalNotificationServiceExtension",
                   "entitlements": {
                     "com.apple.security.application-groups": [
                       "group.com.nofari.nofari.onesignal"

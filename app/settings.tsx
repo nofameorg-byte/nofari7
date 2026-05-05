@@ -28,13 +28,36 @@ export default function SettingsScreen() {
 
     Alert.alert(
       "Delete Local Data",
-      "This removes NOFARI data stored on this device only.",
+      "This removes NOFARI data stored on this device and clears your conversation history.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+
+            try {
+
+              const { data } = await supabase.auth.getSession();
+              const email = data?.session?.user?.email;
+
+              if (email) {
+
+                await fetch(`${process.env.EXPO_PUBLIC_API_URL}/delete-user-data`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ email }),
+                });
+
+              }
+
+            } catch (err) {
+
+              console.log("Delete request failed:", err);
+
+            }
 
             await AsyncStorage.clear();
 
