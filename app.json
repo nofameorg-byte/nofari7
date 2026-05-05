@@ -2,7 +2,7 @@
   "expo": {
     "name": "NOFARI",
     "slug": "nofari",
-    "version": "1.0.4",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/nofari-face.png",
     "scheme": "nofari",
@@ -26,7 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nofari.nofari8",
-      "buildNumber": "10",
+      "buildNumber": "12",
 
       "splash": {
         "backgroundColor": "#0B1E6D"
@@ -42,7 +42,7 @@
 
     "android": {
       "package": "com.nofari.nofari8",
-      "versionCode": 13,
+      "versionCode": 14,
       "permissions": [
         "RECORD_AUDIO"
       ],
