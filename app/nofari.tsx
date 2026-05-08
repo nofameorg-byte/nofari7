@@ -271,8 +271,7 @@ const res = await fetch(BACKEND_URL, {
       ]);
 
       if (data.audioUrl) {
-        const fullUrl = `${process.env.EXPO_PUBLIC_API_URL}${data.audioUrl}`;
-        await playAudioFromUrl(fullUrl);
+  await playAudioFromUrl(data.audioUrl);
       }
 
     } catch (err) {
