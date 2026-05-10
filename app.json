@@ -26,7 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nofari.nofari8",
-      "buildNumber": "12",
+      "buildNumber": "20",
 
       "splash": {
         "backgroundColor": "#0B1E6D"
@@ -39,10 +39,9 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-
     "android": {
       "package": "com.nofari.nofari8",
-      "versionCode": 14,
+      "versionCode": 21,
       "permissions": [
         "RECORD_AUDIO"
       ],

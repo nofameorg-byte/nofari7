@@ -19,6 +19,8 @@ import { Audio } from "expo-av";
 import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../lib/supabase";
+import * as ImagePicker from "expo-image-picker";
+import { Alert } from "react-native";
 
 type Message = {
   id: string;
@@ -28,6 +30,10 @@ type Message = {
 
 const STORAGE_KEY = "nofari_messages";
 const BACKEND_URL = `${process.env.EXPO_PUBLIC_API_URL}/nofari`;
+
+
+console.log("API URL:", process.env.EXPO_PUBLIC_API_URL);
+console.log("BACKEND URL:", BACKEND_URL);
 
 export default function NofariScreen() {
   const router = useRouter();
@@ -184,6 +190,14 @@ export default function NofariScreen() {
   }, [isSpeaking]);
 
   async function playAudioFromUrl(url: string) {
+
+    console.log("PLAY AUDIO FUNCTION CALLED");
+    const fullUrl = url.startsWith("http")
+  ? url
+  : `${process.env.EXPO_PUBLIC_API_URL}${url}`;
+
+console.log("PLAYING AUDIO:", fullUrl);
+
     if (soundRef.current) {
       try {
         await soundRef.current.stopAsync();
@@ -191,9 +205,16 @@ export default function NofariScreen() {
       } catch {}
       soundRef.current = null;
     }
+    
+await Audio.setAudioModeAsync({
+  playsInSilentModeIOS: true,
+  staysActiveInBackground: false,
+  shouldDuckAndroid: true,
+});
+
 
     const { sound } = await Audio.Sound.createAsync(
-      { uri: url },
+      { uri: fullUrl },
       { shouldPlay: true }
     );
 
@@ -211,21 +232,117 @@ export default function NofariScreen() {
 
     await sound.playAsync();
   }
-const pickFile = async () => {
+const uploadAndSend = async (file: any) => {
+
+  setSelectedFile(file);
+
+  const autoMessage = "User uploaded a file";
+
+  const userMessage: Message = {
+    id: Date.now().toString(),
+    role: "user",
+    text: autoMessage,
+  };
+
+  setMessages((prev) => [userMessage, ...prev]);
+  setThinking(true);
+
   try {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ["image/*", "application/pdf"],
-      copyToCacheDirectory: true,
+
+    const formData = new FormData();
+
+    formData.append("message", autoMessage);
+    formData.append("email", userEmail);
+
+    formData.append("file", {
+      uri: file.uri,
+      name: file.name || "upload",
+      type: file.mimeType || file.type || "application/octet-stream",
+    } as any);
+
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      body: formData,
     });
 
-    if (result.canceled) return;
+    const data = await res.json();
 
-    const file = result.assets[0];
-    setSelectedFile(file);
+    setMessages((prev) => [
+      {
+        id: `${Date.now()}-n`,
+        role: "nofari",
+        text: data.reply,
+      },
+      ...prev,
+    ]);
+
+    if (data.audioUrl) {
+      await playAudioFromUrl(data.audioUrl);
+    }
 
   } catch (err) {
-    console.log("FILE PICK ERROR:", err);
+
+    console.log("UPLOAD SEND ERROR:", err);
+
+  } finally {
+
+    setSelectedFile(null);
+    setThinking(false);
+
   }
+
+};
+
+const pickFile = async () => {
+
+  Alert.alert(
+    "Upload",
+    "Choose a source",
+    [
+      {
+        text: "Photos",
+        onPress: async () => {
+
+          const permission =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+          if (!permission.granted) return;
+
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 1,
+          });
+
+          if (result.canceled) return;
+
+          await uploadAndSend(result.assets[0]);
+
+        },
+      },
+
+      {
+        text: "Files",
+        onPress: async () => {
+
+          const result = await DocumentPicker.getDocumentAsync({
+            type: ["image/*", "application/pdf"],
+            copyToCacheDirectory: true,
+          });
+
+          if (result.canceled) return;
+
+          await uploadAndSend(result.assets[0]);
+
+        },
+      },
+
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]
+  );
+
 };
   const sendMessage = async () => {
     if (!input.trim() || isSpeaking) return;
@@ -241,25 +358,45 @@ const pickFile = async () => {
     setThinking(true);
 
     try {
-      const formData = new FormData();
-
-formData.append("message", userMessage.text);
-formData.append("email", userEmail);
+      let res;
 
 if (selectedFile) {
+
+  const formData = new FormData();
+
+  formData.append("message", userMessage.text);
+  formData.append("email", userEmail);
+
   formData.append("file", {
     uri: selectedFile.uri,
     name: selectedFile.name || "upload",
     type: selectedFile.mimeType || "application/octet-stream",
   } as any);
+
+  res = await fetch(BACKEND_URL, {
+    method: "POST",
+    body: formData,
+  });
+
+} else {
+
+  res = await fetch(BACKEND_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message: userMessage.text,
+      email: userEmail,
+    }),
+  });
+
 }
 
-const res = await fetch(BACKEND_URL, {
-  method: "POST",
-  body: formData,
-});
-
       const data = await res.json();
+      console.log("FULL RESPONSE:", data);
+console.log("AUDIO URL TYPE:", typeof data.audioUrl);
+console.log("AUDIO URL VALUE:", data.audioUrl);
 
       setMessages((prev) => [
         {
@@ -270,9 +407,11 @@ const res = await fetch(BACKEND_URL, {
         ...prev,
       ]);
 
-      if (data.audioUrl) {
+      console.log("AUDIO URL:", data.audioUrl);
+
+if (data.audioUrl) {
   await playAudioFromUrl(data.audioUrl);
-      }
+}
 
     } catch (err) {
       console.error("NOFARI frontend error:", err);
