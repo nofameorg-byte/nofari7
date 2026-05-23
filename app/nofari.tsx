@@ -12,7 +12,6 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as DocumentPicker from "expo-document-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
@@ -191,12 +190,17 @@ export default function NofariScreen() {
 
   async function playAudioFromUrl(url: string) {
 
-    console.log("PLAY AUDIO FUNCTION CALLED");
-    const fullUrl = url.startsWith("http")
-  ? url
-  : `${process.env.EXPO_PUBLIC_API_URL}${url}`;
+  try {
 
-console.log("PLAYING AUDIO:", fullUrl);
+    console.log("PLAY AUDIO FUNCTION CALLED");
+
+    const fullUrl = url.startsWith("http")
+      ? url
+      : `${process.env.EXPO_PUBLIC_API_URL}${url}`;
+
+    console.log("PLAYING AUDIO:", fullUrl);
+
+    console.log("ATTEMPTING AUDIO PLAYBACK:", fullUrl);
 
     if (soundRef.current) {
       try {
@@ -205,17 +209,16 @@ console.log("PLAYING AUDIO:", fullUrl);
       } catch {}
       soundRef.current = null;
     }
-    
-await Audio.setAudioModeAsync({
-  playsInSilentModeIOS: true,
-  staysActiveInBackground: false,
-  shouldDuckAndroid: true,
-});
 
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: true,
+    });
 
     const { sound } = await Audio.Sound.createAsync(
       { uri: fullUrl },
-      { shouldPlay: true }
+      { shouldPlay: false }
     );
 
     soundRef.current = sound;
@@ -223,6 +226,7 @@ await Audio.setAudioModeAsync({
 
     sound.setOnPlaybackStatusUpdate((status) => {
       if (!status.isLoaded) return;
+
       if (status.didJustFinish) {
         setIsSpeaking(false);
         sound.unloadAsync();
@@ -231,7 +235,14 @@ await Audio.setAudioModeAsync({
     });
 
     await sound.playAsync();
+
+  } catch (err) {
+
+    console.log("AUDIO PLAYBACK ERROR:", err);
+
   }
+
+}
 const uploadAndSend = async (file: any) => {
 
   setSelectedFile(file);
@@ -320,21 +331,6 @@ const pickFile = async () => {
         },
       },
 
-      {
-        text: "Files",
-        onPress: async () => {
-
-          const result = await DocumentPicker.getDocumentAsync({
-            type: ["image/*", "application/pdf"],
-            copyToCacheDirectory: true,
-          });
-
-          if (result.canceled) return;
-
-          await uploadAndSend(result.assets[0]);
-
-        },
-      },
 
       {
         text: "Cancel",
