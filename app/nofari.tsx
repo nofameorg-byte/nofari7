@@ -341,7 +341,7 @@ const pickFile = async () => {
 
 };
   const sendMessage = async () => {
-    if (!input.trim() || isSpeaking) return;
+    if (!input.trim() || isSpeaking || thinking) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -479,7 +479,14 @@ if (data.audioUrl) {
 
             <View style={styles.inputBar}>
 
-  <TouchableOpacity onPress={pickFile} style={{ marginRight: 6 }}>
+  <TouchableOpacity
+  onPress={pickFile}
+  disabled={thinking || isSpeaking}
+  style={{
+    marginRight: 6,
+    opacity: thinking || isSpeaking ? 0.4 : 1,
+  }}
+>
     <Ionicons name="attach-outline" size={26} color="#00ffc6" />
   </TouchableOpacity>
 
@@ -493,9 +500,15 @@ if (data.audioUrl) {
   />
 
   <TouchableOpacity
-    style={styles.sendBtn}
-    onPress={sendMessage}
-  >
+  style={[
+    styles.sendBtn,
+    {
+      opacity: thinking || isSpeaking ? 0.5 : 1,
+    },
+  ]}
+  disabled={thinking || isSpeaking}
+  onPress={sendMessage}
+>
     <Text style={styles.sendText}>CHAT</Text>
   </TouchableOpacity>
 

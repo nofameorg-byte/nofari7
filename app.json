@@ -26,7 +26,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nofari.nofari8",
-      "buildNumber": "21",
+      "buildNumber": "22",
 
       "splash": {
         "backgroundColor": "#0B1E6D"
