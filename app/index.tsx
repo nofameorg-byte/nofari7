@@ -107,7 +107,7 @@ export default function IndexScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
           <Image
-            source={require("../assets/images/nofari-face.png")}
+            source={require("../assets/NOFARI-3.0.png")}
             style={styles.logo}
             resizeMode="contain"
           />

@@ -444,7 +444,7 @@ if (data.audioUrl) {
             />
 
             <Image
-              source={require("../assets/images/nofari-face.png")}
+              source={require("../assets/NOFARI-3.0.png")}
               style={[styles.logo,{opacity:1}]}
             />
 

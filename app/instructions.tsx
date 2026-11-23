@@ -14,6 +14,18 @@ export default function InstructionsScreen() {
           You can type or speak naturally—just say what&apos;s on your mind.
         </Text>
 
+        <Text style={styles.sectionTitle}>Uploading Photos</Text>
+        <Text style={styles.text}>
+          To share a photo with NOFARI, tap the paperclip (📎) beside
+          the chat message box, then select Photos.
+          {"\n\n"}
+          Choose a picture from your phone and allow photo access
+          if prompted. NOFARI will receive the selected image
+          so you can ask questions about it.
+          {"\n\n"}
+          Only share photos you are comfortable uploading.
+        </Text>
+
         <Text style={styles.sectionTitle}>Magic Link Sign-In</Text>
         <Text style={styles.text}>
           NOFARI uses a secure email magic link sign-in system.
