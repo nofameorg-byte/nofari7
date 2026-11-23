@@ -55,10 +55,10 @@ export default function PrivacyPolicyScreen() {
         </Text>
 
         <Text style={styles.section}>Contact</Text>
-        <Text style={styles.email}>contact@nofameai.com</Text>
+        <Text style={styles.email}>nofameorg@gmail.com</Text>
 
         <Text style={styles.footer}>
-          Last Updated: December 1, 2025
+          Last Updated: November 2026
         </Text>
       </ScrollView>
     </SafeAreaView>
