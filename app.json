@@ -2,18 +2,16 @@
   "expo": {
     "name": "NOFARI",
     "slug": "nofari",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/nofari-face.png",
+    "icon": "./assets/NOFARI-3.0.png",
     "scheme": "nofari",
     "userInterfaceStyle": "automatic",
-
     "splash": {
       "backgroundColor": "#0B1E6D",
       "resizeMode": "contain",
-      "image": "./assets/images/nofari-face.png"
+      "image": "./assets/NOFARI-3.0.png"
     },
-
     "plugins": [
       [
         "onesignal-expo-plugin",
@@ -22,26 +20,24 @@
         }
       ]
     ],
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nofari.nofari8",
-      "buildNumber": "23",
-
+      "buildNumber": "26",
       "splash": {
         "backgroundColor": "#0B1E6D"
       },
-
       "infoPlist": {
         "NSMicrophoneUsageDescription": "NOFARI Circle needs microphone access so users can speak in voice rooms.",
         "NSCameraUsageDescription": "NOFARI uses the camera for Face2Face video calls between users.",
         "NSLocationWhenInUseUsageDescription": "NOFARI may access location features if safety tools are enabled.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "NOFARI uses your photo library so you can select photos and images to share during conversations with your AI companion. For example, you can choose a photo to discuss with NOFARI."
       }
     },
     "android": {
       "package": "com.nofari.nofari8",
-      "versionCode": 23,
+      "versionCode": 24,
       "permissions": [
         "RECORD_AUDIO"
       ],
@@ -49,7 +45,6 @@
         "backgroundColor": "#0B1E6D"
       }
     },
-
     "extra": {
       "eas": {
         "build": {
