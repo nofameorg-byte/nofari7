@@ -38,30 +38,53 @@ export default function SettingsScreen() {
 
             try {
 
-              const { data } = await supabase.auth.getSession();
-              const email = data?.session?.user?.email;
+              const { data, error: sessionError } = await supabase.auth.getSession();
 
-              if (email) {
+              if (sessionError || !data.session?.access_token) {
+                throw new Error("No valid login session");
+              }
 
-                await fetch(`${process.env.EXPO_PUBLIC_API_URL}/delete-user-data`, {
+              const response = await fetch(
+                `${process.env.EXPO_PUBLIC_API_URL}/delete-user-data`,
+                {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${data.session.access_token}`,
                   },
-                  body: JSON.stringify({ email }),
-                });
+                }
+              );
 
+              const result = await response.json();
+
+              if (!response.ok || !result.success) {
+                throw new Error("Account deletion failed");
               }
 
             } catch (err) {
 
               console.log("Delete request failed:", err);
 
+              Alert.alert(
+                "Account Deletion Failed",
+                "Your account could not be deleted. Please try again."
+              );
+
+              return;
+
+            }
+
+            const { error: signOutError } = await supabase.auth.signOut();
+
+            if (signOutError) {
+              Alert.alert(
+                "Sign Out Failed",
+                "Please try again. Your session could not be cleared."
+              );
+              return;
             }
 
             await AsyncStorage.clear();
-
-            await supabase.auth.signOut();
 
             router.replace("/");
 

@@ -38,7 +38,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="nofari" />
+        <Stack.Screen name="nofari" options={{ gestureEnabled: false }} />
       </Stack>
     </SafeAreaProvider>
   );

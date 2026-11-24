@@ -63,6 +63,12 @@ export default function NofariScreen() {
     const loadUser = async () => {
       const { data } = await supabase.auth.getSession();
       const email = data?.session?.user?.email || "";
+
+      if (!data?.session) {
+        router.replace("/");
+        return;
+      }
+
       setUserEmail(email);
     };
     loadUser();
@@ -76,7 +82,9 @@ export default function NofariScreen() {
 
   useEffect(() => {
     activateKeepAwake();
-    return () => deactivateKeepAwake();
+    return () => {
+      void deactivateKeepAwake();
+    };
   }, []);
 
   useEffect(() => {

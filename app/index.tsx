@@ -21,6 +21,7 @@ export default function IndexScreen() {
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [reviewerPassword, setReviewerPassword] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -69,6 +70,22 @@ export default function IndexScreen() {
     }
 
     setStep("code");
+  };
+
+  const reviewerLogin = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: reviewerPassword,
+    });
+    setLoading(false);
+
+    if (error) {
+      Alert.alert("Login Error", error.message);
+      return;
+    }
+
+    router.replace("/nofari");
   };
 
   const verifyOtp = async () => {
@@ -126,9 +143,25 @@ export default function IndexScreen() {
                 autoCapitalize="none"
               />
 
+              {email.trim().toLowerCase() === "reviewer1@nofamai.com" && (
+                <TextInput
+                  placeholder="Reviewer password"
+                  placeholderTextColor="#9aa4c7"
+                  value={reviewerPassword}
+                  onChangeText={setReviewerPassword}
+                  style={styles.input}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+              )}
+
               <TouchableOpacity
                 style={styles.button}
-                onPress={sendOtp}
+                onPress={
+                  email.trim().toLowerCase() === "reviewer1@nofamai.com"
+                    ? reviewerLogin
+                    : sendOtp
+                }
                 disabled={loading}
               >
                 {loading ? (

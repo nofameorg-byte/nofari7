@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as LocalAuthentication from "expo-local-authentication";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../lib/supabase";
 
 export default function LockScreen() {
   const router = useRouter();
@@ -28,6 +29,13 @@ export default function LockScreen() {
     });
 
     if (result.success) {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error || !data.session) {
+        router.replace("/");
+        return;
+      }
+
       await AsyncStorage.removeItem("nofari_locked");
       router.replace("/nofari");
     } else {
