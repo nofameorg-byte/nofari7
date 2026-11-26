@@ -15,14 +15,12 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import NofariCaptcha from "../components/NofariCaptcha";
 
 export default function IndexScreen() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [reviewerPassword, setReviewerPassword] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
   const [loading, setLoading] = useState(false);
@@ -58,18 +56,10 @@ export default function IndexScreen() {
       return;
     }
 
-    if (!captchaToken) {
-      Alert.alert("Verification Required", "Please complete the security check.");
-      return;
-    }
-
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        captchaToken: captchaToken ?? undefined,
-      },
     });
 
     setLoading(false);
@@ -83,16 +73,10 @@ export default function IndexScreen() {
   };
 
   const reviewerLogin = async () => {
-    if (!captchaToken) {
-      Alert.alert("Verification Required", "Please complete the security check.");
-      return;
-    }
-
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password: reviewerPassword,
-      options: { captchaToken },
     });
     setLoading(false);
 
@@ -189,7 +173,6 @@ export default function IndexScreen() {
 
               <Text style={styles.subText}>(SEND CODE)</Text>
 
-              <NofariCaptcha onToken={setCaptchaToken} />
             </>
           )}
 
