@@ -165,8 +165,6 @@ export default function IndexScreen() {
                 />
               )}
 
-              <NofariCaptcha onToken={setCaptchaToken} />
-
               <TouchableOpacity
                 style={styles.button}
                 onPress={
@@ -184,6 +182,8 @@ export default function IndexScreen() {
               </TouchableOpacity>
 
               <Text style={styles.subText}>(SEND CODE)</Text>
+
+              <NofariCaptcha onToken={setCaptchaToken} />
             </>
           )}
 
