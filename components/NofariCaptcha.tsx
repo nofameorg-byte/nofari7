@@ -20,8 +20,12 @@ export default function NofariCaptcha({ onToken }: Props) {
         onMessage={(event) => {
           try {
             const data = JSON.parse(event.nativeEvent.data);
-            if (data.type === "turnstile" && typeof data.token === "string") {
-              onToken(data.token);
+            if (data.type === "turnstile") {
+              if (typeof data.token === "string") {
+                onToken(data.token);
+              } else {
+                onToken("");
+              }
             }
           } catch {
             // Ignore unrelated messages.
