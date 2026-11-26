@@ -15,6 +15,8 @@ export default function NofariCaptcha({ onToken }: Props) {
         originWhitelist={["https://*"]}
         source={{ uri: "https://nofame.org/nofari-captcha" }}
         javaScriptEnabled
+        sharedCookiesEnabled
+        domStorageEnabled
         startInLoadingState
         renderLoading={() => <ActivityIndicator />}
         onMessage={(event) => {
