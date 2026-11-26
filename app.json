@@ -37,7 +37,7 @@
     },
     "android": {
       "package": "com.nofari.nofari8",
-      "versionCode": 26,
+      "versionCode": 27,
       "permissions": [
         "RECORD_AUDIO"
       ],
