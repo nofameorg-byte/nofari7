@@ -83,10 +83,16 @@ export default function IndexScreen() {
   };
 
   const reviewerLogin = async () => {
+    if (!captchaToken) {
+      Alert.alert("Verification Required", "Please complete the security check.");
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password: reviewerPassword,
+      options: { captchaToken },
     });
     setLoading(false);
 
